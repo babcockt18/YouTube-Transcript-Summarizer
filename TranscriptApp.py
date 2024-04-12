@@ -143,3 +143,5 @@ def extractive_summarization(transcript):
 
 if __name__ == '__main__':
     application.run(debug=True)
+
+# TODO: Add translation ui menu and translation functionality

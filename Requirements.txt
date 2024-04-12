@@ -8,3 +8,4 @@ sklearn >= 0.0.post5
 langdetect >= 1.0.9
 nltk >= 3.8.1
 numpy >= 1.23.3
+google-cloud-language >= 2.2.0

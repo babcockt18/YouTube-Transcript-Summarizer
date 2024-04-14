@@ -4,7 +4,10 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from transformers import pipeline
 from langdetect import detect
 import google.generativeai as genai
+from dotenv import load_dotenv
+import os
 
+load_dotenv()  # Load environment variables from .env file
 application = Flask(__name__)
 
 @application.get('/summary')
@@ -90,9 +93,12 @@ def extractive_summarization(transcript):
     Returns:
     - summary (str): The summarized text.
     """
-
+    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
     model = genai.GenerativeModel('gemini-1.0-pro-latest')
-    response = model.generate_content(f"Please summarize the below transcript: {transcript}")
+    try:
+        response = model.generate_content(f"Please summarize the below transcript: {transcript}")
+    except Exception as e:
+        raise Exception(f"Error occurred during summarization: {str(e)}")
 
     return response.text
 

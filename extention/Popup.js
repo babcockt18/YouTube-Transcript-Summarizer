@@ -4,7 +4,6 @@
     of the currently active YouTube video. The maximum length of the summary can be specified.
     The summary is then displayed in the popup.
 */
-import marked from 'marked';
 const btn = document.getElementById("summarize");
 btn.addEventListener("click", function() {
     btn.disabled = true;
@@ -20,8 +19,7 @@ btn.addEventListener("click", function() {
             if (xhr.status === 404) {
                 p.innerHTML = "No subtitles available for this video";
             } else {
-                var htmlSummary = marked(text);
-                p.innerHTML = htmlSummary;
+                p.innerHTML = text;
             }
             btn.disabled = false;
             btn.innerHTML = "Summarize";

@@ -2,12 +2,8 @@
 from flask import Flask, request
 from youtube_transcript_api import YouTubeTranscriptApi
 from transformers import pipeline
-import numpy as np
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.decomposition import TruncatedSVD
-from nltk.tokenize import sent_tokenize
 from langdetect import detect
-from google.cloud import language_v1
+import google.generativeai as genai
 
 application = Flask(__name__)
 
@@ -39,11 +35,7 @@ def summary_api():
         return "No subtitles available for this video", 404
 
     try:
-        # Extractive summarization using Google Gemini API
-        if len(transcript.split()) > 3000:
-            summary = extractive_summarization(transcript)
-        else:
-            summary = abstractive_summarization(transcript, max_length)
+        summary = extractive_summarization(transcript)
     except Exception as e:
         print(f"Error occurred during summarization: {str(e)}")
         return "An error occurred during summarization. Please try again later.", 500
@@ -86,28 +78,6 @@ def get_transcript(video_id):
     transcript = ' '.join([d['text'] for d in transcript_list])
     return transcript
 
-def abstractive_summarization(transcript, max_length):
-    """
-    Summarizes the given transcript using an abstractive summarization model.
-
-    The function employs an NLP pipeline for summarization and applies it to chunks
-    of the input transcript. The chunks are processed independently and concatenated
-    to form the final summary.
-
-    Parameters:
-    - transcript (str): The transcript text to be summarized.
-    - max_length (int): The maximum length of the summary. It controls how concise
-                       the summary should be.
-
-    Returns:
-    - summary (str): The summarized text.
-    """
-    summarizer = pipeline('summarization')
-    summary = ''
-    for i in range(0, (len(transcript)//1000) + 1):
-        summary_text = summarizer(transcript[i * 1000:(i+1) * 1000], max_length=max_length)[0]['summary_text']
-        summary = summary + summary_text + ' '
-    return summary
 
 def extractive_summarization(transcript):
     """
@@ -120,28 +90,12 @@ def extractive_summarization(transcript):
     Returns:
     - summary (str): The summarized text.
     """
-    client = language_v1.LanguageServiceClient()
 
-    document = language_v1.Document(content=transcript, type_=language_v1.Document.Type.PLAIN_TEXT)
-    response = client.analyze_entities(document=document, encoding_type='UTF32')
+    model = genai.GenerativeModel('gemini-1.0-pro-latest')
+    response = model.generate_content(f"Please summarize the below transcript: {transcript}")
 
-    # Get the salience scores for each sentence
-    sentences = response.sentences
-    salience_scores = [sentence.sentiment.score for sentence in sentences]
-
-    # Rank sentences based on salience scores
-    ranked_sentences = [item[0] for item in sorted(enumerate(salience_scores), key=lambda item: -item[1])]
-
-    # Select top sentences for summary
-    num_sentences = int(0.4 * len(sentences))  # 20% of the original sentences
-    selected_sentences = sorted(ranked_sentences[:num_sentences])
-
-    # Compile the final summary
-    summary = " ".join([sentences[idx].text.content for idx in selected_sentences])
-    return summary
+    return response.text
 
 
 if __name__ == '__main__':
     application.run(debug=True)
-
-# TODO: Add translation ui menu and translation functionality

@@ -1,7 +1,6 @@
 # Import all the necessary dependencies
 from flask import Flask, request
 from youtube_transcript_api import YouTubeTranscriptApi
-from transformers import pipeline
 from langdetect import detect
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -96,11 +95,29 @@ def extractive_summarization(transcript):
     genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
     model = genai.GenerativeModel('gemini-1.0-pro-latest')
     try:
-        response = model.generate_content(f"Please summarize the below transcript: {transcript}")
-    except Exception as e:
-        raise Exception(f"Error occurred during summarization: {str(e)}")
+        prompt_template = f"""
+                            Task: Summarize the main points of the given YouTube video transcript in a concise manner.
 
-    return response.text
+                            Video Transcript:
+                            {transcript}
+
+                            Summary Instructions:
+                            - Identify the key topics, ideas, and takeaways from the video transcript
+                            - Organize the main points in a logical and coherent structure
+                            - Maintain the original context and meaning of the video content
+                            - Use clear and straightforward language in the summary
+
+                            Summary:
+                            """
+
+        response = model.generate_content(prompt_template)
+
+    except Exception as e:
+        raise Exception(f"Error occurred during summarization: {str(e)}") from e
+
+    formatted_response=f"Summary:\n\n{response.text}"
+
+    return formatted_response
 
 
 if __name__ == '__main__':
